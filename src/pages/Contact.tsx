@@ -176,7 +176,7 @@ export const Contact = () => {
                     <div>
                       <p className="text-sm font-medium text-gray-900 mb-1">Email</p>
                       <a href="mailto:contact@healthify.com" className="text-sm text-gray-600 hover:text-green-600 transition-colors duration-200">
-                        contact@healthify.com
+                        contact@healthmaster.com
                       </a>
                     </div>
                   </div>
@@ -208,7 +208,7 @@ export const Contact = () => {
             
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="px-6 py-5 border-b border-gray-200">
-                <h2 className="text-lg font-medium text-gray-900">Office Hours</h2>
+                <h2 className="text-lg font-medium text-gray-900">Helping Hours</h2>
               </div>
               
               <div className="p-6">
@@ -218,11 +218,7 @@ export const Contact = () => {
                     <span className="text-sm font-medium text-gray-900">9:00 AM - 6:00 PM</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Saturday</span>
-                    <span className="text-sm font-medium text-gray-900">10:00 AM - 4:00 PM</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Sunday</span>
+                    <span className="text-sm text-gray-500">Saturday-Sunday</span>
                     <span className="text-sm font-medium text-gray-900">Closed</span>
                   </div>
                 </div>
