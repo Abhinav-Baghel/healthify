@@ -186,7 +186,7 @@ export const Contact = () => {
                     <div>
                       <p className="text-sm font-medium text-gray-900 mb-1">Phone</p>
                       <a href="tel:+918012345678" className="text-sm text-gray-600 hover:text-green-600 transition-colors duration-200">
-                        +91 801 234 5678
+                        +91 9302793147
                       </a>
                     </div>
                   </div>
@@ -196,8 +196,8 @@ export const Contact = () => {
                     <div>
                       <p className="text-sm font-medium text-gray-900 mb-1">Location</p>
                       <p className="text-sm text-gray-600">
-                        Health Tower, 42 Wellness Street<br />
-                        Bangalore, Karnataka 560001<br />
+                        Acropolis Institute of Technology,<br />
+                        Indore, Madhya Pradesh <br />
                         India
                       </p>
                     </div>
