@@ -32,7 +32,7 @@ export const Navbar = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center" onClick={closeMenu}>
               <Heart className="h-8 w-8 text-green-500" />
-              <span className="ml-2 text-xl font-bold text-gray-900">Healthify</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">Healthmaster</span>
             </Link>
           </div>
           
