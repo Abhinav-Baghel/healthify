@@ -12,7 +12,7 @@ export const Footer = () => {
           <div className="md:col-span-1">
             <Link to="/" className="flex items-center">
               <Heart className="h-8 w-8 text-green-400" />
-              <span className="ml-2 text-xl font-bold text-white">Healthify</span>
+              <span className="ml-2 text-xl font-bold text-white">Healthmaster</span>
             </Link>
             <p className="mt-4 text-gray-400">
               Your companion for a healthier lifestyle with specialized Indian nutrition tracking.
@@ -117,7 +117,7 @@ export const Footer = () => {
         <div className="border-t border-gray-800 mt-12 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400">
-              © {currentYear} Healthify. All rights reserved.
+              © {currentYear} Healthmaster. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-gray-400 hover:text-green-400 transition duration-200">
