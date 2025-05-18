@@ -1,4 +1,10 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 interface User {
   id: string;
@@ -7,6 +13,7 @@ interface User {
   age?: number;
   weight?: number;
   height?: number;
+  email_verified: boolean;
 }
 
 interface AuthContextType {
@@ -14,8 +21,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  updateUserProfile: (userData: Partial<User>) => void;
+  logout: () => Promise<void>;
+  updateUserProfile: (userData: Partial<User>) => Promise<void>;
+  resendVerificationEmail: () => Promise<boolean>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -23,8 +31,9 @@ export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   login: async () => false,
   register: async () => false,
-  logout: () => {},
-  updateUserProfile: () => {},
+  logout: async () => {},
+  updateUserProfile: async () => {},
+  resendVerificationEmail: async () => false,
 });
 
 interface AuthProviderProps {
@@ -37,25 +46,63 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Check if user is logged in on component mount
-    const storedUser = localStorage.getItem('healthify_user');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          setCurrentUser({
+            id: session.user.id,
+            email: session.user.email!,
+            name: profile?.name || '',
+            age: profile?.age,
+            weight: profile?.weight,
+            height: profile?.height,
+            email_verified: session.user.email_confirmed_at !== null
+          });
+          setIsAuthenticated(true);
+        } else {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // In a real app, this would make a server request
-      // For now, we'll check localStorage for existing users
-      const users = JSON.parse(localStorage.getItem('healthify_users') || '[]');
-      const user = users.find((u: any) => u.email === email && u.password === password);
-      
-      if (user) {
-        const { password, ...userWithoutPassword } = user;
-        setCurrentUser(userWithoutPassword);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        setCurrentUser({
+          id: data.user.id,
+          email: data.user.email!,
+          name: profile?.name || '',
+          age: profile?.age,
+          weight: profile?.weight,
+          height: profile?.height,
+          email_verified: data.user.email_confirmed_at !== null
+        });
         setIsAuthenticated(true);
-        localStorage.setItem('healthify_user', JSON.stringify(userWithoutPassword));
         return true;
       }
       return false;
@@ -67,60 +114,90 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
-      // In a real app, this would make a server request
-      // For now, we'll store in localStorage
-      const users = JSON.parse(localStorage.getItem('healthify_users') || '[]');
-      
-      // Check if user already exists
-      if (users.some((u: any) => u.email === email)) {
-        return false;
-      }
-      
-      const newUser = {
-        id: Date.now().toString(),
-        name,
+      const { data, error } = await supabase.auth.signUp({
         email,
-        password
-      };
-      
-      users.push(newUser);
-      localStorage.setItem('healthify_users', JSON.stringify(users));
-      
-      const { password: _, ...userWithoutPassword } = newUser;
-      setCurrentUser(userWithoutPassword);
-      setIsAuthenticated(true);
-      localStorage.setItem('healthify_user', JSON.stringify(userWithoutPassword));
-      
-      return true;
+        password,
+        options: {
+          data: {
+            name,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        // Create profile record
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: data.user.id,
+              name,
+              email,
+            },
+          ]);
+
+        if (profileError) throw profileError;
+
+        setCurrentUser({
+          id: data.user.id,
+          email: data.user.email!,
+          name,
+          email_verified: false
+        });
+        setIsAuthenticated(true);
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Registration error:', error);
       return false;
     }
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('healthify_user');
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
-  const updateUserProfile = (userData: Partial<User>) => {
+  const updateUserProfile = async (userData: Partial<User>) => {
     if (!currentUser) return;
-    
-    const updatedUser = { ...currentUser, ...userData };
-    setCurrentUser(updatedUser);
-    localStorage.setItem('healthify_user', JSON.stringify(updatedUser));
-    
-    // Also update in users array
-    const users = JSON.parse(localStorage.getItem('healthify_users') || '[]');
-    const updatedUsers = users.map((user: any) => {
-      if (user.id === currentUser.id) {
-        return { ...user, ...userData };
-      }
-      return user;
-    });
-    
-    localStorage.setItem('healthify_users', JSON.stringify(updatedUsers));
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(userData)
+        .eq('id', currentUser.id);
+
+      if (error) throw error;
+
+      setCurrentUser(prev => prev ? { ...prev, ...userData } : null);
+    } catch (error) {
+      console.error('Profile update error:', error);
+    }
+  };
+
+  const resendVerificationEmail = async (): Promise<boolean> => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: currentUser?.email,
+      });
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error resending verification email:', error);
+      return false;
+    }
   };
 
   return (
@@ -130,7 +207,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       login, 
       register, 
       logout,
-      updateUserProfile
+      updateUserProfile,
+      resendVerificationEmail
     }}>
       {children}
     </AuthContext.Provider>
