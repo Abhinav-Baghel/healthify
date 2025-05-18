@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Activity, Moon, Utensils, TrendingUp, Plus, Edit, Trash } from 'lucide-react';
+import { Activity, Moon, Utensils, TrendingUp, Plus, Edit, Trash, AlertCircle } from 'lucide-react';
 
 interface StepEntry {
   id: string;
@@ -28,7 +28,7 @@ interface MealEntry {
 }
 
 export const Dashboard = () => {
-  const { currentUser } = useContext(AuthContext);
+  const { currentUser, resendVerificationEmail } = useContext(AuthContext);
   const [steps, setSteps] = useState<StepEntry[]>([]);
   const [sleep, setSleep] = useState<SleepEntry[]>([]);
   const [meals, setMeals] = useState<MealEntry[]>([]);
@@ -40,15 +40,14 @@ export const Dashboard = () => {
     carbs: 0,
     fat: 0
   });
+  const [verificationEmailSent, setVerificationEmailSent] = useState(false);
   
-  // Get current date in YYYY-MM-DD format
   const getCurrentDate = () => {
     const now = new Date();
     return now.toISOString().split('T')[0];
   };
   
   useEffect(() => {
-    // Load data from localStorage
     const loadUserData = () => {
       if (currentUser) {
         const storedSteps = localStorage.getItem(`healthify_steps_${currentUser.id}`);
@@ -65,7 +64,6 @@ export const Dashboard = () => {
   }, [currentUser]);
   
   useEffect(() => {
-    // Calculate daily nutrition whenever meals change
     calculateDailyNutrition();
   }, [meals]);
   
@@ -118,7 +116,6 @@ export const Dashboard = () => {
     const existingEntry = steps.find(entry => entry.date === today);
     
     if (existingEntry) {
-      // Update existing entry
       const updatedSteps = steps.map(entry => 
         entry.date === today 
           ? { ...entry, count: entry.count + newStepCount } 
@@ -126,7 +123,6 @@ export const Dashboard = () => {
       );
       saveSteps(updatedSteps);
     } else {
-      // Add new entry
       const newEntry: StepEntry = {
         id: Date.now().toString(),
         date: today,
@@ -145,7 +141,6 @@ export const Dashboard = () => {
     const existingEntry = sleep.find(entry => entry.date === today);
     
     if (existingEntry) {
-      // Update existing entry
       const updatedSleep = sleep.map(entry => 
         entry.date === today 
           ? { ...entry, hours: newSleepHours } 
@@ -153,7 +148,6 @@ export const Dashboard = () => {
       );
       saveSleep(updatedSleep);
     } else {
-      // Add new entry
       const newEntry: SleepEntry = {
         id: Date.now().toString(),
         date: today,
@@ -163,6 +157,14 @@ export const Dashboard = () => {
     }
     
     setNewSleepHours(0);
+  };
+
+  const handleResendVerification = async () => {
+    const success = await resendVerificationEmail();
+    if (success) {
+      setVerificationEmailSent(true);
+      setTimeout(() => setVerificationEmailSent(false), 5000);
+    }
   };
   
   const getTodaySteps = () => {
@@ -231,6 +233,31 @@ export const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
+        {currentUser && !currentUser.email_verified && (
+          <div className="mb-8 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-yellow-400 mr-2" />
+              <div>
+                <p className="text-sm text-yellow-700">
+                  Please verify your email address to access all features.
+                  {!verificationEmailSent ? (
+                    <button
+                      onClick={handleResendVerification}
+                      className="ml-2 text-yellow-700 underline hover:text-yellow-800"
+                    >
+                      Resend verification email
+                    </button>
+                  ) : (
+                    <span className="ml-2 text-green-600">
+                      Verification email sent!
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Welcome, {currentUser?.name}!</h1>
           <p className="text-gray-600 mt-2">Here's your health summary for today</p>
